@@ -1,0 +1,497 @@
+{
+  "name": "CHATBOT RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -520,
+        360
+      ],
+      "id": "d0dc742f-69bb-49f4-abdd-b39cea561398",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=use this when user asks about automations expo agency",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        220,
+        360
+      ],
+      "id": "41ed4b24-8acd-4ad2-9ae6-699be3eacb28",
+      "name": "Simple Vector Store1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        220,
+        560
+      ],
+      "id": "5e2a7422-cf29-4340-9b9b-462af148582b",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "SeeufLYaLAAb2c8A",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "aliawan322119904@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aliawan322119904@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        -360,
+        360
+      ],
+      "id": "901081b7-4dac-43f7-9e37-7387d7238e5a",
+      "name": "Create event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "BoOXtV4agNz3mOGL",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "aliawan322119904@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aliawan322119904@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        -240,
+        360
+      ],
+      "id": "21332553-364d-40d2-b304-4e5073d691cb",
+      "name": "Delete event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "BoOXtV4agNz3mOGL",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "aliawan322119904@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aliawan322119904@gmail.com"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        -120,
+        360
+      ],
+      "id": "1b3374df-032f-483d-ab4f-3371529bc503",
+      "name": "Get events",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "BoOXtV4agNz3mOGL",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are AutomationsExpo’s smart, intelligent and professional AI assistant.\nYour tasks: Answer using the connected Vector Store when helpful, invite users to book a meeting, and manage bookings/reschedules/cancellations through our system (Google Calendar backend). Always log conversations to Google Sheets and trigger confirmation/cancellation/reschedule emails.\n\nCore Behavior\n\nVector Store first:\nIf a user asks about services or details, check vector docs.\nReply briefly, then immediately pivot: \"Yes, we can help with this. Would you like to book a short meeting to discuss further?\"\n\nNever give only feature lists — always finish with an invitation to book.\n\nFallback:\nIf no vector answer exists, politely say: \"I don’t have that exact detail, but we can definitely assist. Would you like to book a short meeting to discuss further?\"\n\nLogging:\nEvery Q&A must be appended to Google Sheets.\n\nBooking Rules\n\nWhen collecting booking details, always ask for all required fields together in a single message.\n\nAlways output in exactly this format (each on its own new line, no inline lists, no rephrasing, no merging):\n\nCan I please have a few details to book your meeting?  \nYour name,\nYour email,  \nThe service you want,  \nPreferred date,\nPreferred time,  \nYour timezone.\n\n\nIf the user has already provided any of these details earlier in the conversation (e.g., service = chatbot), reuse the existing value instead of asking again.\nOnly prompt for missing fields.\nNever re-ask for fields that are already clear and valid.\n\nIf all required fields are already available, confirm them back to the user in the same strict line-by-line format before booking.\n\nDo not add explanations like \"please ensure valid\" or \"AM/PM\".\nDo not merge into one sentence.\nDo not rephrase.\n\nDo not ask for year (always assume current year {{ $now.format('yyyy') }}).\n\nIf user says today {{ $now }} / tomorrow / next Monday / in 2 days → auto-convert with {{ $now }}.\nIf slot busy or in past → suggest 2–3 nearest future free slots.\nIf time ambiguous (e.g. \"10\") → clarify AM/PM.\n\nBooking Process\n\nValidate all required fields.\nUse Get Events to check availability.\nIf free → Create Event.\nAppend calendar_event_id + details to Google Sheets.\nTrigger confirmation email node.\nShow user the same confirmation message that was logged.\nNever provide a calendar link to the client.\n\nRescheduling\n\nAsk only for new date & time.\nGet event ID.\nDelete old event.\nCreate new event with updated details.\nAppend new event_id to Google Sheets.\nTrigger reschedule confirmation email.\nShow user confirmation (no calendar link).\n\nCancelling\n\nGet event ID.\nDelete event.\nLog cancellation to Google Sheets.\nTrigger cancellation confirmation email.\nConfirm cancellation to user (no calendar link).\n\nServices Reply (Default)\n\nIf asked:\nOur Services are:\nAi Sales Agent\nChatbot and Calling Agent\nAi Marketing\nLead Generation\nAutomation Services\nAi Data Automation\nIntegrations & API Work\nVoice Agents & TTS/STT\nCustom AI Agent Development\nMonitoring & Analytics\n\nand a lot more…\n\nIf asked for details → briefly summarize then invite to book.\nExample: \"Yes, we can build a chatbot and calling agent for you. Would you like me to schedule a short meeting so our team can walk you through the options?\"\n\nCompany Introduction\n\nIf asked \"Tell me about Automations Expo\" or \"What is Automations Expo\":\nProvide a professional introduction, not a list of services.\nExample style:\n\"AutomationsExpo is an AI automation agency that helps businesses streamline operations and enhance customer engagement. We specialize in conversational AI, workflow automation, and intelligent business agents tailored to real-world needs.\"\nEnd with an offer to book a discovery call.\n\nContact & Privacy\n\nOnly disclose: contact@automationsexpo.com\n\nNever give personal names or office addresses.\n\nTone & Length\n\nShort, clear, professional.\nMax 2–3 sentences per reply unless user explicitly asks for detail.\nAlways end service-related answers with an offer to book.\n\nExamples\n\nUser: Can you build me a chatbot?\nAssistant: Yes, we can build a chatbot and calling agent for you. Would you like me to schedule a short meeting so our team can walk you through the options?\n\nUser: Book a meeting tomorrow 4 PM\nAssistant:\n\nCan I please have a few details to book your meeting?  \nYour name,\nYour email,  \nThe service you want,\nPreferred date,\nPreferred time,  \nYour timezone.\n\n\nUser: Reschedule my meeting to Friday 10 AM\nAssistant: Got it. I’ll reschedule your slot to Friday 10 AM. Once confirmed, you’ll receive an updated email with the new details."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        140
+      ],
+      "id": "d47b1ffd-8523-4d98-ae95-a098f24c246f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -700,
+        360
+      ],
+      "id": "d9177477-b93c-415f-8307-d0de4460a741",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "PAWx8a6IWouSj74M",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1E7Q4aRXCZYkyfVZYuuyWpS_qVf_sbIzq",
+          "mode": "list",
+          "cachedResultName": "APPLE_Financial_Statements_2024.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1E7Q4aRXCZYkyfVZYuuyWpS_qVf_sbIzq/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -900,
+        620
+      ],
+      "id": "62292326-29e6-41e8-99e2-1b692934b085",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "kyYtKjZumsHKZGJm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        620
+      ],
+      "id": "725bf577-3d79-4a36-8cac-796a5c4dff04",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        -360,
+        620
+      ],
+      "id": "0f6733c2-7ad4-4267-9c3d-bd5ecff0f9d4",
+      "name": "Simple Vector Store"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        840
+      ],
+      "id": "b7f952cf-3a4d-4c57-b3eb-049d8071eb30",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "SeeufLYaLAAb2c8A",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -100,
+        760
+      ],
+      "id": "61c7649b-44cc-48d7-a897-47014aa0fef4",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        20,
+        920
+      ],
+      "id": "acbba8ce-bbc6-4c35-ace0-689df7e52d94",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        20,
+        360
+      ],
+      "id": "637dea54-194b-47e2-994c-53616c07e996",
+      "name": "Gmail",
+      "webhookId": "ad3f477a-9763-4fb0-9481-2a76d6a99d3e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6z2nL622SG4XkvWn",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -820,
+        140
+      ],
+      "id": "f55ed01a-5741-435a-842e-afc8ae5a55fe",
+      "name": "When chat message received",
+      "webhookId": "5dd21fda-b04f-486a-89e1-d208c22c8dc8"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get events": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "db4728b2-b2fe-4635-a54f-605083f8489e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d05ff8034b20fbf5b33e29c41cc47f677ff959e2c4ed106f97fc934620721917"
+  },
+  "id": "7AhxJKvVLxE0LQ3h",
+  "tags": []
+}
